@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Raw protocol captures — huge, and a whole-bus capture can contain
+# keystrokes from other devices on the same bus. Never committed.
+# Curated capture *findings* live in docs/captures/ and ARE committed —
+# hence the leading slash, which keeps this to the repo root only.
+/captures/
+*.pcapng
+*.usbmon
+*.raw
+
+# Editors / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# build output
+/dist/

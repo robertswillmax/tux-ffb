@@ -1,0 +1,33 @@
+# Maintainer: Max Roberts <roberts.will.max@gmail.com>
+pkgname=tux-ffb
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Linux-native configurator for MOZA force-feedback flight bases"
+arch=('any')
+url="https://github.com/robertswillmax/tux-ffb"
+license=('GPL-3.0-only')
+depends=('python' 'python-pyserial' 'python-yaml' 'python-gobject'
+         'gtk4' 'libadwaita')
+makedepends=('python-build' 'python-installer' 'python-wheel' 'python-hatchling')
+source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+build() {
+  cd "$srcdir/$pkgname-$pkgver"
+  python -m build --wheel --no-isolation
+}
+
+package() {
+  cd "$srcdir/$pkgname-$pkgver"
+  python -m installer --destdir="$pkgdir" dist/*.whl
+
+  # The udev rule must sort before 73-seat-late.rules or its uaccess tags are
+  # never processed. Do not renumber it.
+  install -Dm644 packaging/70-tux-ffb.rules \
+    "$pkgdir/usr/lib/udev/rules.d/70-tux-ffb.rules"
+  install -Dm644 packaging/io.github.tux_ffb.TuxFfb.desktop \
+    "$pkgdir/usr/share/applications/io.github.tux_ffb.TuxFfb.desktop"
+  install -Dm644 packaging/io.github.tux_ffb.TuxFfb.metainfo.xml \
+    "$pkgdir/usr/share/metainfo/io.github.tux_ffb.TuxFfb.metainfo.xml"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

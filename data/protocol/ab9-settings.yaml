@@ -1,0 +1,245 @@
+# AB9 settings with CONFIRMED semantics.
+#
+# Every entry here was identified by differential capture against MOZA Cockpit:
+# the setting was given a unique marker value and the address that took that
+# value was read back. `source` names the capture note; `effect` records whether
+# the setting has been observed to change the hardware's behaviour, which is a
+# separate question from whether it stores (see docs/07-safety.md).
+#
+# Addressing: read = group 30, write = group 31, device 18.
+#   plain:        7e | len | grp | 18 | cmd_id                 | [value] | ck
+#   parameterised 7e | len | grp | 18 | cmd_id | index         | [value] | ck
+#   index = bank << 4 | slot
+
+meta:
+  device: MOZA AB9 FFB Base
+  usb: {vendor: 0x346e, product: 0x1000}
+  read_group: 30
+  write_group: 31
+  device_id: 18
+
+# Within bank 0 of the per-axis effect ids, slots are:
+#   0,1 = roll  (X) pair      2,3 = pitch (Y) pair
+# Cockpit exposes each pair as one control with a "+/- linked" toggle, so both
+# slots of a pair normally hold the same value. Which slot is + and which is -
+# is NOT yet determined.
+# CONFIRMED by force 2026-08-28: with spring at 50, zeroing slots 2 and 3 left
+# the stick sprung in roll and free in pitch. Not inferred from marker values.
+slot_convention:
+  0: roll-a
+  1: roll-b
+  2: pitch-a
+  3: pitch-b
+
+# Named starting points. Data, not code, so they can be edited or shared.
+presets:
+  moza-defaults:
+    title: MOZA defaults
+    description: What the base ships with.
+    values:
+      ffb-intensity: [70]
+      max-torque-limit: [100]
+      spring: [50]
+      damper: [30]
+      inertia: [10]
+      friction: [10]
+      adaptive-centering: [1]
+      centering-strength: [20, 20, 20]
+      centering-range: [10, 10, 10]
+
+  directinput-passthrough:
+    title: DirectInput passthrough
+    description: >-
+      MOZA default with most static forces set to 0. A little damper is kept to
+      kill oscillation. For games that send their own force feedback.
+    values:
+      ffb-intensity: [70]
+      max-torque-limit: [100]
+      spring: [0]
+      damper: [5]
+      inertia: [0]
+      friction: [0]
+      adaptive-centering: [1]
+      centering-strength: [20, 20, 20]
+      centering-range: [10, 10, 10]
+
+actions:
+  # Not settings — operations. Never invoked without explicit confirmation.
+  cogging-calibration:
+    cmd: 194
+    start: {write: 0, write_width: 2, frame: "7e 03 1f 12 c2 00 00 81"}
+    progress: {read: 194, range: [0, 100]}
+    duration_s: 53
+    safety: destructive
+    note: "drives the motor; the stick must be free and untouched. Reading 194
+           reports percent complete. Verified from Linux 2026-08-28: 53.2s.
+           Writes 26 parameters - group 14 indices 300-319, 400-402, 1001,
+           2000-2003 - which is what a backup must cover."
+    source: cogging-calibration-command
+
+settings:
+
+  # ---- force-sensing mode (nested under id 225) ---------------------------
+  # A separate operating mode, not a variation of FFB. Switching into it zeroes
+  # about thirty FFB settings, so mode belongs to a profile rather than inside
+  # one. All of it lives in the nested space; none appears in the flat manifest.
+  # THE BASE OPERATING MODE. Named by the firmware itself on write:
+  #   0 -> [INFO]steer.c:779 force feedback mode
+  #   1 -> [INFO]steer.c:787 force sensing mode
+  # Stored at Table 7 Param 124. id 133 does not move across this, which
+  # confirms 133 is the FFB sub-mode (DI/telemetry/integrated), not the mode.
+  base-mode:           {cmd: 225, index: 33, type: int, write_width: 1,
+                        values: {0: force-feedback, 1: force-sensing},
+                        source: force-sensing-mode, effect: confirmed}
+  max-output-feedback: {cmd: 225, index: 39, type: int, write_width: 1,
+                        note: "vibrates the stick at 100% output force; force-sensing only",
+                        source: force-sensing-mode, effect: confirmed}
+  force-max-distance:  {cmd: 212, type: int, write_width: 2,
+                        source: force-sensing-mode, effect: unverified}
+  force-axis-rotation: {cmd: 225, index: 34, type: int, write_width: 1,
+                        source: force-sensing-mode, effect: unverified}
+  force-deadzone:      {cmd: 225, index: 35, bank: 0, slot: 0, type: int, write_width: 1,
+                        source: force-sensing-mode, effect: unverified}
+  force-saturation:    {cmd: 225, index: 36, bank: 0, slots: [0, 1], type: int,
+                        write_width: 1, note: "slot 0 roll, slot 1 pitch",
+                        source: force-sensing-mode, effect: unverified}
+  ffb-enable:          {cmd: 225, index: 23, type: int, write_width: 1,
+                        source: toggle-capture, effect: unverified}
+  trim-follow-mode:    {cmd: 225, index: 14, type: int, write_width: 1,
+                        source: toggle-capture, effect: unverified}
+  trim-following:      {cmd: 225, index: 1, type: int, write_width: 1,
+                        source: toggle-capture, effect: unverified}
+  autopilot-following: {cmd: 225, index: 6, type: int, write_width: 1,
+                        source: toggle-capture, effect: unverified}
+
+  # ---- modes and switches (captured from Cockpit writes) -----------------
+  # NOT the dropdown index. Cockpit lists DI, telemetry, integrated; the stored
+  # values are telemetry=0, directinput=1, integrated=2. Established from the
+  # captured write sequence (telem, integrated, DI -> 0, 2, 1) and confirmed by
+  # reading back 1 with the UI left on DirectInput.
+  ffb-mode:         {cmd: 133, type: int, write_width: 2,
+                     values: {0: telemetry, 1: directinput, 2: integrated},
+                     source: toggle-capture, effect: unverified}
+  temperature-mode: {cmd: 192, type: int, write_width: 2,
+                     values: {1: conservative, 2: aggressive},
+                     source: toggle-capture, effect: unverified}
+  hands-off-detect: {cmd: 207, type: int, write_width: 2,
+                     source: toggle-capture, effect: unverified}
+  hardware-trim:    {cmd: 195, type: int, write_width: 2,
+                     note: "was wrongly marked forbidden as a calibration flag",
+                     source: toggle-capture, effect: unverified}
+  trim-mode:        {cmd: 203, type: int, write_width: 2,
+                     source: toggle-capture, effect: unverified}
+  adaptive-centering: {cmd: 208, type: int, write_width: 2,
+                     source: toggle-capture, effect: unverified}
+
+  # ---- axis shaping -------------------------------------------------------
+  # An axis is one object: a curve with movable endpoints. See 03-device-model.md.
+  curve-points-x:   {cmd: 149, bank: 1, slots: [2,3,4,5,6], type: int, unit: percent,
+                     source: x-axis-curve-identified, effect: confirmed, write_width: 1}
+  curve-points-y:   {cmd: 150, bank: 1, slots: [2,3,4,5,6], type: int, unit: percent,
+                     write_width: 1,   # verified: 7e 03 1f 12 96 14 3c a5 (slot 4, 29->60)
+                     source: x-axis-curve-identified, effect: confirmed}
+  deadzone-x:       {cmd: 151, bank: 0, slot: 1, type: int, unit: percent, default: 2,
+                     note: "x-position of the curve's left node",
+                     source: curve-endpoints-and-invert, effect: confirmed, write_width: 1}
+  deadzone-y:       {cmd: 152, bank: 0, slot: 1, type: int, unit: percent, default: 2,
+                     write_width: 1,   # verified: 7e 03 1f 12 98 01 02 5a (95->2)
+                     source: curve-endpoints-and-invert, effect: confirmed}
+  saturation-x:     {cmd: 151, bank: 0, slot: 2, type: int, unit: percent, default: 100,
+                     note: "INPUT saturation - the x-position of the curve's right node. Output reaches maximum at this fraction of physical travel and stays railed for the rest. Not output range: that is the curve's slot 6 value. Verified by observation 2026-08-28.",
+                     source: curve-endpoints-and-invert, effect: confirmed, write_width: 1}
+  saturation-y:     {cmd: 152, bank: 0, slot: 2, type: int, unit: percent, default: 100,
+                     source: curve-endpoints-and-invert, effect: confirmed, note: "INPUT saturation - x-position of the curve's right node. Output maxes at this fraction of physical travel. Output RANGE is a different control: the curve's slot 6 value.", write_width: 1}
+  invert-x:         {cmd: 158, type: int, values: {0: normal, 1: inverted},
+                     source: curve-endpoints-and-invert, effect: confirmed, write_width: 2}
+
+  # ---- Z axis (add-on module; configurable even when not fitted) ----------
+  # Stored differently from X/Y: IEEE-754 floats at plain command ids, not
+  # integer slots on a parameterised id.
+  curve-points-z:   {cmds: [83, 84, 85, 86, 87], type: float, unit: percent,
+                     note: "interior curve points; 88 and 89 are the endpoints (0, 100)",
+                     source: z-axis-and-centering, effect: unverified}
+  curve-ends-z:     {cmds: [88, 89], type: float, unit: percent,
+                     source: z-axis-and-centering, effect: unverified}
+  invert-z:         {cmd: 90, type: int, values: {0: normal, 1: inverted},
+                     source: z-axis-and-centering, effect: unverified, write_width: 1}
+
+  # ---- grip ---------------------------------------------------------------
+  # A stored SELECTION, not a detection. The base does not identify the fitted
+  # grip: its heartbeat reports "stick_reg" whatever is attached, and setting
+  # this to a grip that is not physically present is accepted.
+  # write_width is per-setting and NOT inferable; a wrong width can write the
+  # wrong value silently. Always verify by read-back.
+  grip-type:        {cmd: 92, type: int, write_width: 1,
+                     values: {0: MOZA MH16, 17: VIRPIL Alpha Prime, 32: WinWing WW-16},
+                     modes: {0: 0, 32: 1},
+                     note: "selects the firmware's stick decode mode; catalogue is
+                            many-to-few onto modes. Functional, not cosmetic - a wrong
+                            selection breaks button enumeration.",
+                     source: grip-mode-and-write-width, effect: confirmed}
+
+  # ---- force feedback: master levels (plain getters) ----------------------
+  max-torque-limit: {cmd: 169, type: int, unit: percent, marker: 25,
+                     source: effect-settings-enumeration, effect: confirmed,
+                     note: "verified by feel: an active ceiling. Linear in the written percent -
+                            20 stores 0.33879 and 100 stores 1.694, exactly 5:1 - but the
+                            UNIT IS UNKNOWN. It was guessed as Nm; the AB9 is rated far
+                            higher than 1.69 Nm, so that guess is retracted. Writes TWO
+                            params (Table 7 #17 and #18), likely a bound pair.", write_width: 2}
+  ffb-intensity:    {cmd: 174, type: int, unit: percent, marker: 28,
+                     source: effect-settings-enumeration, effect: confirmed,
+                     note: "verified by feel: global multiplier over the base effects.
+                            Spring 50 at intensity 20 is much weaker than at 70", write_width: 2}
+  spring:           {cmd: 175, type: int, unit: percent, marker: 31,
+                     source: effect-settings-enumeration, effect: confirmed,
+                     note: "verified by feel 2026-08-28: 50 produces clear centring;
+                            firmware stores it as a float fraction, 0.5", write_width: 2}
+  damper:           {cmd: 176, type: int, unit: percent, marker: 34,
+                     source: effect-settings-enumeration, effect: confirmed,
+                     note: "verified by feel: resistance scaling with speed, no centring", write_width: 2}
+  inertia:          {cmd: 177, type: int, unit: percent, marker: 37,
+                     source: effect-settings-enumeration, effect: confirmed,
+                     note: "verified by feel: resists changes in motion, added-mass feel", write_width: 2}
+  friction:         {cmd: 178, type: int, unit: percent, marker: 41, write_width: 2,
+                     source: effect-settings-enumeration, effect: confirmed,
+                     note: "verified by feel: constant drag, flat across speeds"}
+
+  # ---- force feedback: per-axis (parameterised, bank 0) -------------------
+  ffb-intensity-axis: {cmd: 205, bank: 0, slots: [0,2], type: int, unit: percent,
+                       markers: {0: 30, 2: 29},
+                       source: effect-settings-enumeration, effect: confirmed, note: "verified by force: spring 50 with pitch intensity zeroed left roll sprung and pitch free", write_width: 1}
+  max-torque-axis:    {cmd: 206, bank: 0, slots: [0,2], type: int, unit: percent,
+                       markers: {0: 27, 2: 26},
+                       source: effect-settings-enumeration, effect: confirmed, note: "verified by force: spring 50 with pitch torque at 20 gave noticeably weaker centring fore/aft than left/right", write_width: 1}
+  spring-gain:        {cmd: 218, bank: 0, slots: [0,1,2,3], type: int, unit: percent,
+                       markers: {0: 33, 1: 33, 2: 32, 3: 32},
+                       source: effect-settings-enumeration, effect: confirmed,
+                       note: "verified by force: zeroing slots 2,3 left roll sprung
+                              and pitch free", write_width: 1}
+  damper-gain:        {cmd: 219, bank: 0, slots: [0,1,2,3], type: int, unit: percent,
+                       markers: {0: 36, 1: 36, 2: 35, 3: 35},
+                       source: effect-settings-enumeration, effect: confirmed, note: "verified by force 2026-08-28: with damper, inertia and friction all at 60 and the pitch gains of all three zeroed, roll was heavy and pitch free. Any inert gain would have left its effect acting on pitch.", write_width: 1}
+  inertia-gain:       {cmd: 220, bank: 0, slots: [0,1,2,3], type: int, unit: percent,
+                       markers: {0: 39, 1: 39, 2: 38, 3: 38},
+                       source: effect-settings-enumeration, effect: confirmed, note: "verified by force 2026-08-28: with damper, inertia and friction all at 60 and the pitch gains of all three zeroed, roll was heavy and pitch free. Any inert gain would have left its effect acting on pitch.", write_width: 1}
+  friction-gain:      {cmd: 221, bank: 0, slots: [0,1,2,3], type: int, unit: percent,
+                       markers: {0: 43, 1: 43, 2: 42, 3: 42},
+                       source: effect-settings-enumeration, effect: confirmed, note: "verified by force 2026-08-28: with damper, inertia and friction all at 60 and the pitch gains of all three zeroed, roll was heavy and pitch free. Any inert gain would have left its effect acting on pitch.", write_width: 1}
+
+  # ---- adaptive centering compensation -----------------------------------
+  # Three slots each, all taking the same value when set from Cockpit's single
+  # control. Slots 0,1,2 are plausibly roll/pitch/Z but that is untested.
+  # DirectInput hardware trim follow rate. Located by marker value; the other
+  # twelve trim/autopilot controls are NOT in the mapped address space at all -
+  # see captures/2026-08-28-ab9-trim-settings-not-in-mapped-space.md
+  trim-follow-rate:   {cmd: 196, bank: 0, slots: [0,1,2], type: int, write_width: 1,
+                       source: trim-settings-not-in-mapped-space, effect: unverified}
+
+  centering-strength: {cmd: 209, bank: 0, slots: [0,1,2], type: int, unit: percent,
+                       marker: 21, source: z-axis-and-centering, effect: confirmed, note: "verified by FEEL at strength 90: a clearly elevated breakout force near centre, which is what an active centring assist feels like. Invisible to axis measurement - settle positions were identical at strength 0, 20 and 90 (mean error ~100 counts in all three), because the reported axis does not encode force. Writing any slot sets all three at once.", note: "Adaptive centering compensation: an active assist near centre that drives the stick to a true 0/0, because spring force alone struggles to centre precisely against friction and cogging. This setting is how hard the assist drives toward centre.", write_width: 1}
+  centering-range:    {cmd: 210, bank: 0, slots: [0,1,2], type: int, unit: percent,
+                       marker: 22, source: z-axis-and-centering, effect: confirmed, note: "verified by feel with spring disabled: at range 90 the assist covers large per-axis bands (a plus shape, not a circular pocket) and actively drives back to centre; at range 10 the same force becomes a tight trough that snaps in like a ball bearing. Width, independent of strength. CAPPED IN FIRMWARE: writing 10 stores 0.10 but writing 90 stores 0.50, so the assist covers at most half of travel and values above 50 do nothing.", note: "Adaptive centering compensation: an active assist near centre that drives the stick to a true 0/0, because spring force alone struggles to centre precisely against friction and cogging. This setting is how near centre the assist becomes active.", write_width: 1}
+
+# Master -> per-axis correspondence, all offset by 43:
+#   spring 175 -> 218,  damper 176 -> 219,  inertia 177 -> 220,  friction 178 -> 221

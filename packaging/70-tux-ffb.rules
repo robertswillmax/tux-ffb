@@ -1,0 +1,11 @@
+# MOZA devices (vendor 0x346e): grant the active desktop user access.
+#
+#   if00/if01  CDC-ACM control channel (/dev/ttyACM*)  <- configuration
+#   if02       HID joystick / PID force feedback       <- the game's
+#
+# THE FILENAME MATTERS. uaccess tags are processed by 73-seat-late.rules, so
+# this must sort before it. A 99-* file sets the tag too late to have any
+# effect at all — which costs an afternoon to discover.
+KERNEL=="hidraw*", ATTRS{idVendor}=="346e", MODE="0660", TAG+="uaccess"
+SUBSYSTEM=="usb",  ATTRS{idVendor}=="346e", MODE="0660", TAG+="uaccess"
+SUBSYSTEM=="tty",  ATTRS{idVendor}=="346e", TAG+="uaccess"

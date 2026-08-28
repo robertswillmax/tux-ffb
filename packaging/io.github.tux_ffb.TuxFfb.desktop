@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=tux-ffb
+GenericName=Flight Base Configurator
+Comment=Configure MOZA force-feedback flight bases
+Exec=tux-ffb
+Icon=io.github.tux_ffb.TuxFfb
+Terminal=false
+Categories=Utility;Settings;HardwareSettings;
+Keywords=MOZA;AB9;joystick;force feedback;flight sim;DCS;
+StartupNotify=true

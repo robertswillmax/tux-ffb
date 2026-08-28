@@ -1,0 +1,170 @@
+{
+ "plain": {
+  "1": "00",
+  "2": "00 00 00 00 00",
+  "3": "00",
+  "9": "00",
+  "10": "7f ff",
+  "12": "7f ff",
+  "80": "00",
+  "81": "00",
+  "82": "00",
+  "83": "41 a0 00 00",
+  "84": "42 20 00 00",
+  "85": "42 70 00 00",
+  "86": "42 a0 00 00",
+  "87": "42 c8 00 00",
+  "88": "00 00 00 00",
+  "89": "42 c8 00 00",
+  "90": "00",
+  "91": "01",
+  "92": "00",
+  "93": "00",
+  "94": "01",
+  "95": "0f",
+  "96": "01",
+  "97": "0f",
+  "98": "00",
+  "99": "00",
+  "100": "00 00",
+  "114": "5e 00",
+  "130": "00 02",
+  "133": "00 01",
+  "134": "00 01",
+  "153": "00 64",
+  "158": "00 00",
+  "162": "00 00",
+  "163": "16 bf",
+  "164": "0e a2",
+  "165": "06 85",
+  "166": "18 8f",
+  "167": "10 76",
+  "168": "08 5d",
+  "169": "00 64",
+  "174": "00 46",
+  "175": "00 00",
+  "176": "00 05",
+  "177": "00 00",
+  "178": "00 00",
+  "184": "ff fc",
+  "185": "00 00",
+  "186": "00 01",
+  "192": "00 02",
+  "193": "00 00",
+  "198": "00 00",
+  "201": "00 01",
+  "203": "00 01",
+  "207": "00 00",
+  "208": "00 01",
+  "211": "00 00",
+  "212": "00 00",
+  "213": "00 64",
+  "214": "00 64",
+  "215": "80 01",
+  "216": "ac f6",
+  "217": "00 01",
+  "222": "00 00"
+ },
+ "param": {
+  "147": {
+   "junk": "00 00",
+   "warn": "unexpected parameter"
+  },
+  "148": {
+   "junk": "00 00",
+   "warn": "unexpected parameter"
+  },
+  "149": {
+   "junk": "00 00",
+   "warn": "unexpected parameter"
+  },
+  "150": {
+   "junk": "00 00",
+   "warn": "unexpected parameter"
+  },
+  "151": {
+   "junk": "00 00",
+   "warn": "unexpected parameter"
+  },
+  "152": {
+   "junk": "00 00",
+   "warn": "unexpected parameter"
+  },
+  "171": {
+   "junk": "00 00",
+   "warn": "unexpected parameter"
+  },
+  "172": {
+   "junk": "00 00",
+   "warn": "unexpected parameter"
+  },
+  "173": {
+   "junk": "00 00",
+   "warn": "unexpected parameter"
+  },
+  "180": {
+   "junk": "00 00",
+   "warn": "unexpected parameter"
+  },
+  "181": {
+   "junk": "00 00",
+   "warn": "unexpected parameter"
+  },
+  "182": {
+   "junk": "00 00",
+   "warn": "unexpected parameter"
+  },
+  "183": {
+   "junk": "00 00",
+   "warn": "unexpected parameter"
+  },
+  "196": {
+   "junk": "00 00",
+   "warn": "unexpected parameter"
+  },
+  "197": {
+   "junk": "00 00",
+   "warn": "unexpected parameter"
+  },
+  "199": {
+   "junk": "00 00",
+   "warn": "unexpected parameter"
+  },
+  "205": {
+   "junk": "5e 00",
+   "warn": "unexpected parameter"
+  },
+  "206": {
+   "junk": "5e 00",
+   "warn": "unexpected parameter"
+  },
+  "209": {
+   "junk": "5e 00",
+   "warn": "unexpected parameter"
+  },
+  "210": {
+   "junk": "5e 00",
+   "warn": "unexpected parameter"
+  },
+  "218": {
+   "junk": "5e 00",
+   "warn": "unexpected parameter"
+  },
+  "219": {
+   "junk": "5e 00",
+   "warn": "unexpected parameter"
+  },
+  "220": {
+   "junk": "5e 00",
+   "warn": "unexpected parameter"
+  },
+  "221": {
+   "junk": "5e 00",
+   "warn": "unexpected parameter"
+  },
+  "225": {
+   "junk": "5e",
+   "warn": "unexpect cmd_num"
+  }
+ }
+}
